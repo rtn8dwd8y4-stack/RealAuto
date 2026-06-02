@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RealAuto - 数据仪表盘</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+      color: #333;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #1a73e8, #0d47a1);
+      color: white;
+      padding: 24px 32px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .header h1 { font-size: 28px; font-weight: 600; }
+    .header p { margin-top: 4px; opacity: 0.85; font-size: 14px; }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+    .loading {
+      text-align: center;
+      padding: 60px;
+      color: #999;
+      font-size: 16px;
+    }
+
+    .empty {
+      text-align: center;
+      padding: 60px;
+      color: #999;
+    }
+    .empty .icon { font-size: 48px; margin-bottom: 12px; }
+
+    .date-selector {
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .date-selector select {
+      padding: 8px 16px;
+      font-size: 16px;
+      border: 1px solid #d9d9d9;
+      border-radius: 6px;
+      background: white;
+      cursor: pointer;
+      min-width: 160px;
+    }
+    .date-selector label { font-weight: 600; font-size: 15px; }
+
+    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      border: 1px solid #e8e8e8;
+    }
+    .card h2 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #1a73e8;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card .badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .badge.ok { background: #e6f7e6; color: #389e0d; }
+    .badge.warn { background: #fff7e6; color: #d48806; }
+    .badge.error { background: #fff1f0; color: #cf1322; }
+
+    .stat-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .stat-item:last-child { border-bottom: none; }
+    .stat-label { color: #666; font-size: 14px; }
+    .stat-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1a73e8;
+    }
+
+    .footer {
+      text-align: center;
+      padding: 24px;
+      color: #999;
+      font-size: 12px;
+    }
+
+    .refresh-btn {
+      padding: 8px 20px;
+      background: #1a73e8;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-left: auto;
+    }
+    .refresh-btn:hover { background: #1557b0; }
+
+    .meta { margin-top: 12px; font-size: 12px; color: #999; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>📊 RealAuto 数据仪表盘</h1>
+    <p>七鱼客服 + Jira 工单 · 全自动采集</p>
+  </div>
+
+  <div class="container">
+    <div class="date-selector">
+      <label for="dateSelect">📅 查看日期：</label>
+      <select id="dateSelect">
+        <option value="">加载中...</option>
+      </select>
+      <button class="refresh-btn" onclick="loadData()">🔄 刷新</button>
+    </div>
+
+    <div id="content">
+      <div class="loading">加载数据中...</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    RealAuto · 数据自动采集系统 · <span id="updateTime"></span>
+  </div>
+
+  <script>
+    let allData = {};
+
+    async function loadData() {
+      document.getElementById('content').innerHTML = '<div class="loading">加载数据中...</div>';
+
+      try {
+        const res = await fetch('data.json');
+        if (!res.ok) throw new Error('数据文件加载失败');
+        allData = await res.json();
+        render();
+      } catch (e) {
+        document.getElementById('content').innerHTML = `
+          <div class="empty">
+            <div class="icon">📭</div>
+            <div>暂无数据</div>
+            <div style="margin-top:8px;font-size:13px">请先运行 node collect.js 采集数据，或将 data.json 放在同一目录下</div>
+            <div style="margin-top:4px;font-size:12px;color:#cf1322">错误: ${e.message}</div>
+          </div>
+        `;
+      }
+    }
+
+    function render() {
+      const dates = Object.keys(allData).sort().reverse();
+      const select = document.getElementById('dateSelect');
+      select.innerHTML = dates.map(d => `<option value="${d}">${d}</option>`).join('');
+
+      if (dates.length === 0) {
+        document.getElementById('content').innerHTML = `
+          <div class="empty">
+            <div class="icon">📭</div>
+            <div>暂无数据</div>
+            <div style="margin-top:8px;font-size:13px">请先运行 node collect.js 采集数据</div>
+          </div>
+        `;
+        return;
+      }
+
+      // 默认显示最新日期
+      select.value = dates[0];
+      renderDate(dates[0]);
+
+      select.onchange = () => renderDate(select.value);
+    }
+
+    function renderDate(date) {
+      const entry = allData[date];
+      if (!entry) {
+        document.getElementById('content').innerHTML = `<div class="empty"><div class="icon">❓</div><div>该日期无数据</div></div>`;
+        return;
+      }
+
+      let html = '<div class="cards">';
+
+      // 七鱼卡片
+      html += '<div class="card">';
+      html += '<h2>💬 七鱼客服 ';
+      if (entry.qiyu) {
+        html += '<span class="badge ok">已采集</span>';
+      } else {
+        html += '<span class="badge error">未采集</span>';
+      }
+      html += '</h2>';
+
+      if (entry.qiyu && entry.qiyu.stats) {
+        const stats = entry.qiyu.stats;
+        if (Object.keys(stats).length === 0) {
+          html += '<div style="color:#999">暂无统计数据（可能需要调整页面提取逻辑）</div>';
+        } else {
+          for (const [k, v] of Object.entries(stats)) {
+            html += `<div class="stat-item"><span class="stat-label">${k}</span><span class="stat-value">${v}</span></div>`;
+          }
+        }
+        if (entry.qiyu.timestamp) {
+          html += `<div class="meta">采集时间: ${new Date(entry.qiyu.timestamp).toLocaleString('zh-CN')}</div>`;
+        }
+      } else {
+        html += '<div style="color:#999">该日未采集七鱼数据</div>';
+      }
+      html += '</div>';
+
+      // Jira 卡片
+      html += '<div class="card">';
+      html += '<h2>🎫 Jira 工单 (项目 CS) ';
+      if (entry.jira) {
+        html += '<span class="badge ok">已采集</span>';
+      } else {
+        html += '<span class="badge error">未采集</span>';
+      }
+      html += '</h2>';
+
+      if (entry.jira && entry.jira.summary) {
+        const s = entry.jira.summary;
+        if (s.project) {
+          html += `<div class="stat-item"><span class="stat-label">项目</span><span class="stat-value" style="font-size:16px">${s.project.name} (${s.project.key})</span></div>`;
+        }
+        if (s.customerServiceRequests) {
+          html += `<div class="stat-item"><span class="stat-label">客户服务请求</span><span class="stat-value">${s.customerServiceRequests.total}</span></div>`;
+        }
+        if (s.unresolved) {
+          html += `<div class="stat-item"><span class="stat-label">未解决</span><span class="stat-value" style="color:#cf1322">${s.unresolved.total}</span></div>`;
+        }
+        if (s.todayCreated) {
+          html += `<div class="stat-item"><span class="stat-label">今日创建</span><span class="stat-value">${s.todayCreated.total}</span></div>`;
+        }
+        if (s.todayUpdated) {
+          html += `<div class="stat-item"><span class="stat-label">今日更新</span><span class="stat-value">${s.todayUpdated.total}</span></div>`;
+        }
+        if (entry.jira.timestamp) {
+          html += `<div class="meta">采集时间: ${new Date(entry.jira.timestamp).toLocaleString('zh-CN')}</div>`;
+        }
+      } else {
+        html += '<div style="color:#999">该日未采集 Jira 数据</div>';
+      }
+      html += '</div>';
+
+      html += '</div>';
+
+      document.getElementById('content').innerHTML = html;
+      document.getElementById('updateTime').textContent = `页面加载: ${new Date().toLocaleString('zh-CN')}`;
+    }
+
+    // 初始化
+    loadData();
+  </script>
+</body>
+</html>
