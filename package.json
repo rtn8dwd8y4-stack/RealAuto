@@ -1,0 +1,19 @@
+{
+  "name": "realauto",
+  "version": "1.0.0",
+  "description": "七鱼 + Jira 全自动数据采集 & 仪表盘",
+  "main": "server.js",
+  "scripts": {
+    "collect": "node collect.js",
+    "start": "node server.js",
+    "report": "node report.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "playwright": "^1.40.0",
+    "axios": "^1.6.2"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
